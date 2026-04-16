@@ -25,8 +25,7 @@ Este repositorio contiene el desarrollo de actividades, proyectos y ejercicios r
 
 📌 Tecnologías:
 
-* TypeScript
+* JavaScript
 * Kaboom.js
-* Vite
 
 ---
