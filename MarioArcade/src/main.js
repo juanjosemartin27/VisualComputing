@@ -55,6 +55,13 @@ k.scene("game", () => {
     "====================  =======================",
   ];
 
+  const evilShroomPositions = [
+    k.vec2(12 * 20, 13 * 20),
+    k.vec2(17 * 20, 13 * 20),
+    k.vec2(26 * 20, 13 * 20),
+    k.vec2(29 * 20, 13 * 20),
+  ];
+
   const levelCfg = {
     tileWidth: 20,
     tileHeight: 20,
@@ -103,6 +110,7 @@ k.scene("game", () => {
         k.area(),
         k.scale(0.5),
         k.body({ isStatic: true }),
+        "pipe",
       ],
       "#": () => [
         k.sprite("block"),
@@ -115,12 +123,14 @@ k.scene("game", () => {
         k.area(),
         k.scale(0.5),
         k.body({ isStatic: true }),
+        "pipe-top",
       ],
       "+": () => [
         k.sprite("pipe-top-right"),
         k.area(),
         k.scale(0.5),
         k.body({ isStatic: true }),
+        "pipe-top",
       ],
     },
   };
@@ -143,16 +153,45 @@ k.scene("game", () => {
 
   k.add([k.text("level 0", { size: 18 }), k.pos(40, 6)]);
 
-  [k.vec2(12 * 20, 13 * 20), k.vec2(17 * 20, 13 * 20)].forEach((pos) => {
-    k.add([
+  const evilShrooms = [];
+  evilShroomPositions.forEach((pos) => {
+    const evil = k.add([
       k.sprite("evil-shroom"),
       k.pos(pos),
       k.area(),
       k.body(),
       k.scale(1),
       "evil-shroom",
-      { dir: -1 },
+      { dir: -1, turning: false },
     ]);
+
+    evil.onCollide("=", () => {
+      if (evil.turning) return;
+      evil.turning = true;
+      evil.dir *= -1;
+      k.wait(0.3, () => {
+        evil.turning = false;
+      });
+    });
+
+    evil.onCollide("pipe", () => {
+      if (evil.turning) return;
+      evil.turning = true;
+      evil.dir *= -1;
+      k.wait(0.3, () => {
+        evil.turning = false;
+      });
+    });
+
+    evil.onCollide("evil-shroom", () => {
+      if (evil.turning) return;
+      evil.turning = true;
+      evil.dir *= -1;
+      k.wait(0.3, () => {
+        evil.turning = false;
+      });
+    });
+    evilShrooms.push(evil);
   });
 
   const player = k.add([
@@ -202,13 +241,17 @@ k.scene("game", () => {
       currentSprite = newSprite;
       player.use(k.sprite(currentSprite));
     }
+    if (player.pos.y > k.height() + 10) {
+      go("lose", { score: scoreLabel.value });
+    }
 
-    k.get("evil-shroom").forEach((shroom) => {
+    evilShrooms.forEach((shroom) => {
       shroom.move(30 * shroom.dir, 0);
     });
   });
 
   // ─── COLISIONES ───────────────────────────────────────────────────────────
+
   player.onCollide("question", (obj) => {
     if (obj.opened) return;
     const hittingFromBelow = player.pos.y > obj.pos.y;
