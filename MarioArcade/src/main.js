@@ -34,6 +34,7 @@ k.loadSprite("pipe-top-right", "sprites/pipe-top-right.png");
 k.loadSprite("question", "sprites/question.png");
 k.loadSprite("unboxed", "sprites/unboxed.png");
 k.loadSprite("background", "sprites/background.png");
+k.loadSprite("initial", "sprites/initial.png");
 // Cargar sonidos
 k.loadSound("coin", "sounds/coin.wav");
 k.loadSound("powerup", "sounds/powerup.wav");
@@ -392,7 +393,12 @@ k.scene("lose", ({ score } = { score: "0" }) => {
 
 // ─── INICIAR ────────────────────────────────────────────────────────────────
 k.scene("start", () => {
-  k.add([k.rect(k.width(), k.height()), k.pos(0, 0), k.color(0, 0, 0)]);
+  k.add([
+    k.sprite("initial"),
+    k.pos(0, 0),
+    k.scale(k.width() / 800, k.height() / 320),
+    k.z(-1),
+  ]);
 
   k.add([
     k.text("SUPER MARIO", { size: 40 }),
@@ -409,7 +415,7 @@ k.scene("start", () => {
   ]);
 
   k.onKeyPress("space", () => {
-    const music = k.play("main-theme", { loop: true, volume: 0.8 });
+    const music = k.play("main-theme", { loop: true, volume: 1 });
     k.go("game", { music });
   });
 });
