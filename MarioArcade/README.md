@@ -16,7 +16,7 @@ Un juego estilo Super Mario Bros desarrollado con [Kaboom.js](https://kaboomjs.c
 ### 1. Clona o descarga el proyecto
 
 ```bash
-git clone [(https://github.com/juanjosemartin27/VisualComputing)]
+git clone https://github.com/juanjosemartin27/VisualComputing
 cd VisualComputing/MarioArcade
 ```
 
