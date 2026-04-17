@@ -11,7 +11,8 @@ const BIG_JUMP_FORCE = 550;
 let bestScore = 0;
 
 k.setGravity(1600);
-
+// ─── CARGAR RECURSOS ───────────────────────────────────────────────────────
+// Cargar sprites
 k.loadSprite("block", "sprites/block.png");
 k.loadSprite("blue-block", "sprites/blue-block.png");
 k.loadSprite("blue-brick", "sprites/blue-brick.png");
@@ -33,9 +34,17 @@ k.loadSprite("pipe-top-right", "sprites/pipe-top-right.png");
 k.loadSprite("question", "sprites/question.png");
 k.loadSprite("unboxed", "sprites/unboxed.png");
 k.loadSprite("background", "sprites/background.png");
-
+// Cargar sonidos
+k.loadSound("coin", "sounds/coin.wav");
+k.loadSound("powerup", "sounds/powerup.wav");
+k.loadSound("powerup-appears", "sounds/powerup-appears.wav");
+k.loadSound("jump", "sounds/jump.wav");
+k.loadSound("stomp", "sounds/stomp.wav");
+k.loadSound("powerdown", "sounds/powerdown.wav");
+k.loadSound("game-over", "sounds/game-over.wav");
+k.loadSound("main-theme", "sounds/main-theme.mp3");
 // ─── ESCENA PRINCIPAL ───────────────────────────────────────────────────────
-k.scene("game", () => {
+k.scene("game", ({ music }) => {
   const map = [
     "                            ",
     "                            ",
@@ -222,6 +231,7 @@ k.scene("game", () => {
   k.onKeyPress("space", () => {
     if (player.isGrounded()) {
       player.jump(JUMP_FORCE);
+      k.play("jump");
       player.jumping = true;
     }
   });
@@ -242,7 +252,9 @@ k.scene("game", () => {
       player.use(k.sprite(currentSprite));
     }
     if (player.pos.y > k.height() + 10) {
-      go("lose", { score: scoreLabel.value });
+      music.stop();
+      k.play("game-over");
+      k.go("lose", { score: scoreLabel.value });
     }
 
     evilShrooms.forEach((shroom) => {
@@ -272,8 +284,8 @@ k.scene("game", () => {
     const hittingFromBelow = player.pos.y > obj.pos.y;
     if (!hittingFromBelow) return;
     obj.opened = true;
+    k.play("powerup-appears");
     obj.use(k.sprite("unboxed"));
-
     const mushroom = k.add([
       k.sprite("mushroom"),
       k.pos(obj.pos.x, obj.pos.y - 20),
@@ -295,6 +307,7 @@ k.scene("game", () => {
 
   player.onCollide("mushroom", (obj) => {
     k.destroy(obj);
+    k.play("powerup");
     player.use(k.scale(1 / 30));
     player.bonus = true;
     player.jump(BIG_JUMP_FORCE);
@@ -302,6 +315,7 @@ k.scene("game", () => {
 
   player.onCollide("coin", (obj) => {
     k.destroy(obj);
+    k.play("coin");
     scoreLabel.value = String(Number(scoreLabel.value) + 1);
     scoreLabel.text = "score " + scoreLabel.value.padStart(5, "0");
   });
@@ -312,6 +326,7 @@ k.scene("game", () => {
 
     if (playerFalling && playerAbove) {
       k.destroy(shroom);
+      k.play("stomp");
       player.jump(JUMP_FORCE / 10);
       scoreLabel.value = String(Number(scoreLabel.value) + 10);
       scoreLabel.text = "score " + scoreLabel.value.padStart(5, "0");
@@ -319,11 +334,13 @@ k.scene("game", () => {
       if (player.bonus && !playerFalling) {
         player.use(k.scale(1 / 45));
         player.bonus = false;
-        k.destroy(shroom);
+        k.play("powerdown");
       } else {
         if (Number(scoreLabel.value) > bestScore) {
           bestScore = Number(scoreLabel.value);
         }
+        music.stop();
+        k.play("game-over");
         k.go("lose", { score: scoreLabel.value });
       }
     }
@@ -365,11 +382,36 @@ k.scene("lose", ({ score } = { score: "0" }) => {
     k.anchor("center"),
     k.color(200, 200, 200),
   ]);
-
-  k.onKeyPress("space", () => {
-    k.go("game");
+  k.wait(2.5, () => {
+    k.onKeyPress("space", () => {
+      const music = k.play("main-theme", { loop: true, volume: 0.8 });
+      k.go("game", { music });
+    });
   });
 });
 
 // ─── INICIAR ────────────────────────────────────────────────────────────────
-k.go("game");
+k.scene("start", () => {
+  k.add([k.rect(k.width(), k.height()), k.pos(0, 0), k.color(0, 0, 0)]);
+
+  k.add([
+    k.text("SUPER MARIO", { size: 40 }),
+    k.pos(k.width() / 2, k.height() / 2 - 40),
+    k.anchor("center"),
+    k.color(255, 255, 255),
+  ]);
+
+  k.add([
+    k.text("press space to start", { size: 20 }),
+    k.pos(k.width() / 2, k.height() / 2 + 20),
+    k.anchor("center"),
+    k.color(200, 200, 200),
+  ]);
+
+  k.onKeyPress("space", () => {
+    const music = k.play("main-theme", { loop: true, volume: 0.8 });
+    k.go("game", { music });
+  });
+});
+
+k.go("start");
