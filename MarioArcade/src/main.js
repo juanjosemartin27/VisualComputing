@@ -9,6 +9,7 @@ const MOVE_SPEED = 120;
 const JUMP_FORCE = 520;
 const BIG_JUMP_FORCE = 550;
 let bestScore = 0;
+let currentLevel = 0;
 
 k.setGravity(1600);
 // ─── CARGAR RECURSOS ───────────────────────────────────────────────────────
@@ -35,6 +36,7 @@ k.loadSprite("question", "sprites/question.png");
 k.loadSprite("unboxed", "sprites/unboxed.png");
 k.loadSprite("background", "sprites/background.png");
 k.loadSprite("initial", "sprites/initial.png");
+k.loadSprite("flag", "sprites/flag.png");
 // Cargar sonidos
 k.loadSound("coin", "sounds/coin.wav");
 k.loadSound("powerup", "sounds/powerup.wav");
@@ -44,33 +46,77 @@ k.loadSound("stomp", "sounds/stomp.wav");
 k.loadSound("powerdown", "sounds/powerdown.wav");
 k.loadSound("game-over", "sounds/game-over.wav");
 k.loadSound("main-theme", "sounds/main-theme.mp3");
-// ─── ESCENA PRINCIPAL ───────────────────────────────────────────────────────
-k.scene("game", ({ music }) => {
-  const map = [
-    "                            ",
-    "                            ",
-    "                            ",
-    "                            ",
-    "                            ",
-    "                            ",
-    "                            ",
-    "        ?                   ",
-    "                            ",
-    "                            ",
-    "    ? #M#?#           -+      ",
-    "                      ()      -+            ",
-    "            	     -+  ()      ()           ",
-    "                  ()  ()      ()           ",
-    "====================  =======================",
-    "====================  =======================",
-  ];
+k.loadSound("rakata", "sounds/rakata.mp3");
 
-  const evilShroomPositions = [
-    k.vec2(12 * 20, 13 * 20),
-    k.vec2(17 * 20, 13 * 20),
-    k.vec2(26 * 20, 13 * 20),
-    k.vec2(29 * 20, 13 * 20),
-  ];
+// ─── LEVEL MAPS ─────────────────────────────────────────────────────────
+const levels = [
+  // Level 0
+  {
+    map: [
+      "                            ",
+      "                            ",
+      "                            ",
+      "                            ",
+      "                            ",
+      "                            ",
+      "                            ",
+      "        ?                   ",
+      "                            ",
+      "                            ",
+      "    ? #M#?#           -+      ",
+      "                      ()      -+            ",
+      "            	     -+  ()      ()           ",
+      "                  ()  ()      ()           ",
+      "====================  =======================",
+      "====================  =======================",
+    ],
+    exitPipeX: 630,
+    isBlue: false,
+    musicTrack: "main-theme",
+    evilShroomPositions: [
+      k.vec2(12 * 20, 13 * 20),
+      k.vec2(17 * 20, 13 * 20),
+      k.vec2(26 * 20, 13 * 20),
+      k.vec2(29 * 20, 13 * 20),
+    ],
+  },
+  // Level 1
+  {
+    map: [
+      "                                            ",
+      "                                            ",
+      "                                            ", 
+      "                                            ",
+      "                                            ",
+      "        B                           ",
+      "                                    F ",
+      "    ¿¿¿¿¿¿¿¿¿                                ",
+      "                                            ",
+      "                                    [",
+      "   ¿¿¿¿¿¿¿¿¿¿¿        -+           [[",
+      "                      ()          [[[            ",
+      "            	     -+  ()        -+[[[           ",
+      "                  ()  ()        ()[[[           ",
+      "[[[[[[[[[[[[[   [[[[  [[[[[[[[[[[[[[[[[[[[[[[[[",
+      "[[[[[[[[[[[[[   [[[[  [[[[[[[[[[[[[[[[[[[[[[[[[",
+    ],
+    exitPipeX: 630,
+    isBlue: true,
+    musicTrack: "rakata",
+    evilShroomPositions: [
+      k.vec2(5 * 20, 13 * 20),
+      k.vec2(12 * 20, 13 * 20),
+      k.vec2(25 * 20, 13 * 20),
+    ],
+  },
+];
+// ─── ESCENA PRINCIPAL ───────────────────────────────────────────────────────
+k.scene("game", ({ music, playerBonus = false }) => {
+  const levelData = levels[currentLevel % levels.length];
+  const map = levelData.map;
+  const exitPipeX = levelData.exitPipeX;
+  const evilShroomPositions = levelData.evilShroomPositions;
+  const isBlueLevel = levelData.isBlue;
 
   const levelCfg = {
     tileWidth: 20,
@@ -82,17 +128,30 @@ k.scene("game", ({ music }) => {
         k.scale(1),
         k.body({ isStatic: true }),
       ],
+      "[": () => [
+        k.sprite("blue-brick"),
+        k.area(),
+        k.scale(0.5),
+        k.body({ isStatic: true }),
+      ],
       $: () => [k.sprite("coin"), k.area(), k.scale(0.02), "coin"],
       "*": () => [
         k.sprite("mushroom"),
         k.area(),
         k.body(),
-        k.scale(0.5),
+        k.scale(0.1),
         "mushroom",
       ],
       "?": () => [
         k.sprite("question"),
         k.area(),
+        k.body({ isStatic: true }),
+        "question",
+      ],
+      "¿": () => [
+        k.sprite("blue-question"),
+        k.area(),
+        k.scale(0.5),
         k.body({ isStatic: true }),
         "question",
       ],
@@ -102,11 +161,12 @@ k.scene("game", ({ music }) => {
         k.body({ isStatic: true }),
         "mushroom-question",
       ],
-      "¿": () => [
+      B: () => [
         k.sprite("blue-question"),
         k.area(),
+        k.scale(0.5),
         k.body({ isStatic: true }),
-        "question",
+        "mushroom-question",
       ],
       "(": () => [
         k.sprite("pipe-left"),
@@ -128,6 +188,12 @@ k.scene("game", ({ music }) => {
         k.body({ isStatic: true }),
         k.scale(0.015625),
       ],
+      "{": () => [
+        k.sprite("blue-block"),
+        k.area(),
+        k.body({ isStatic: true }),
+        k.scale(0.5),
+      ],
       "-": () => [
         k.sprite("pipe-top-left"),
         k.area(),
@@ -141,6 +207,13 @@ k.scene("game", ({ music }) => {
         k.scale(0.5),
         k.body({ isStatic: true }),
         "pipe-top",
+      ],
+      "F": () => [
+        k.sprite("flag"),
+        k.area(),
+        k.scale(0.25),
+        k.body({ isStatic: true }),
+        "flag",
       ],
     },
   };
@@ -161,16 +234,16 @@ k.scene("game", ({ music }) => {
     { value: "0" },
   ]);
 
-  k.add([k.text("level 0", { size: 18 }), k.pos(40, 6)]);
+  k.add([k.text("level " + currentLevel, { size: 18 }), k.pos(40, 6)]);
 
   const evilShrooms = [];
   evilShroomPositions.forEach((pos) => {
     const evil = k.add([
-      k.sprite("evil-shroom"),
+      k.sprite(isBlueLevel ? "blue-evil-shroom" : "evil-shroom"),
       k.pos(pos),
       k.area(),
       k.body(),
-      k.scale(1),
+      k.scale(isBlueLevel ? 0.5 : 1),
       "evil-shroom",
       { dir: -1, turning: false },
     ]);
@@ -210,11 +283,11 @@ k.scene("game", ({ music }) => {
     k.area(),
     k.body(),
     k.anchor("center"),
-    k.scale(1 / 45),
+    k.scale(playerBonus ? 1 / 30 : 1 / 45),
     {
       dir: "right",
       jumping: false,
-      bonus: false,
+      bonus: playerBonus,
     },
   ]);
 
@@ -234,6 +307,21 @@ k.scene("game", ({ music }) => {
       player.jump(JUMP_FORCE);
       k.play("jump");
       player.jumping = true;
+    }
+  });
+
+  k.onKeyDown("down", () => {
+    const pipeRange = 20; 
+    if (
+      Math.abs(player.pos.x - exitPipeX) < pipeRange &&
+      player.isGrounded()
+    ) {
+      currentLevel++;
+      music.stop();
+      const nextLevelData = levels[currentLevel % levels.length];
+      console.log("Transitioning to level", currentLevel, "with music:", nextLevelData.musicTrack);
+      const nextMusic = k.play(nextLevelData.musicTrack, { loop: true, volume: 1 });
+      k.go("game", { music: nextMusic, playerBonus: player.bonus });
     }
   });
 
@@ -271,6 +359,9 @@ k.scene("game", ({ music }) => {
     if (!hittingFromBelow) return;
     obj.opened = true;
     obj.use(k.sprite("unboxed"));
+    if (isBlueLevel) {
+      obj.use(k.scale(1));
+    }
     k.add([
       k.sprite("coin"),
       k.pos(obj.pos.x, obj.pos.y - 20),
@@ -287,12 +378,15 @@ k.scene("game", ({ music }) => {
     obj.opened = true;
     k.play("powerup-appears");
     obj.use(k.sprite("unboxed"));
+    if (isBlueLevel) {
+      obj.use(k.scale(1));
+    }
     const mushroom = k.add([
       k.sprite("mushroom"),
       k.pos(obj.pos.x, obj.pos.y - 20),
       k.area(),
       k.body(),
-      k.scale(1),
+      k.scale(isBlueLevel ? 1 : 1),
       "mushroom",
       { dir: 1 },
     ]);
@@ -321,6 +415,11 @@ k.scene("game", ({ music }) => {
     scoreLabel.text = "score " + scoreLabel.value.padStart(5, "0");
   });
 
+  player.onCollide("flag", () => {
+    music.stop();
+    k.go("win");
+  });
+
   player.onCollide("evil-shroom", (shroom) => {
     const playerFalling = player.vel.y > 0;
     const playerAbove = player.pos.y < shroom.pos.y;
@@ -345,6 +444,34 @@ k.scene("game", ({ music }) => {
         k.go("lose", { score: scoreLabel.value });
       }
     }
+  });
+});
+
+
+
+// ─── ESCENA WIN ─────────────────────────────────────────────────────────────
+k.scene("win", () => {
+  k.add([k.rect(k.width(), k.height()), k.pos(0, 0), k.color(0, 0, 0)]);
+
+  k.add([
+    k.text("YOU WIN!", { size: 60 }),
+    k.pos(k.width() / 2, k.height() / 2 - 60),
+    k.anchor("center"),
+    k.color(255, 255, 0),
+  ]);
+
+  k.add([
+    k.text("press space to play again", { size: 16 }),
+    k.pos(k.width() / 2, k.height() / 2 + 90),
+    k.anchor("center"),
+    k.color(200, 200, 200),
+  ]);
+  k.wait(2.5, () => {
+    k.onKeyPress("space", () => {
+      currentLevel = 0;
+      const music = k.play("main-theme", { loop: true, volume: 0.8 });
+      k.go("game", { music });
+    });
   });
 });
 
@@ -385,6 +512,7 @@ k.scene("lose", ({ score } = { score: "0" }) => {
   ]);
   k.wait(2.5, () => {
     k.onKeyPress("space", () => {
+      currentLevel = 0;
       const music = k.play("main-theme", { loop: true, volume: 0.8 });
       k.go("game", { music });
     });
@@ -415,6 +543,7 @@ k.scene("start", () => {
   ]);
 
   k.onKeyPress("space", () => {
+    currentLevel = 0;
     const music = k.play("main-theme", { loop: true, volume: 1 });
     k.go("game", { music });
   });
