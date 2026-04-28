@@ -1,9 +1,13 @@
-# 🍄 MarioArcade  - Kaboom.js
+# MarioArcade  - Kaboom.js
 
 Un juego estilo Super Mario Bros desarrollado con [Kaboom.js](https://kaboomjs.com/) v3000.1.17.
 
 ---
-
+## Integrantes del equipo
+* María Camila Castro
+* Edinson Sánchez Fuentes
+* Juan Carlos Andrade
+* Juan José Martin
 ## Requisitos
 
 - [Node.js](https://nodejs.org/) v16 o superior
